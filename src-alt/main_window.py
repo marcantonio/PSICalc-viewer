@@ -21,17 +21,21 @@ class ClusteringParams(QWidget):
 
         # Create a horizontal layout for the first row of radio buttons
         first_row_layout = QHBoxLayout()
-        first_row_layout.setAlignment(Qt.AlignLeft)
+        #first_row_layout.setAlignment(Qt.AlignLeft)
+        first_row_layout.addStretch(5)
         first_row_layout.addWidget(deweese_labeling)
+        first_row_layout.addStretch(12)
 
         # Add the first row layout to the form layout
         layout.addRow(first_row_layout)
 
         # Create a horizontal layout for the second row of radio buttons and spinbox
         second_row_layout = QHBoxLayout()
+        second_row_layout.addStretch(1)
         second_row_layout.setAlignment(Qt.AlignLeft)
         second_row_layout.addWidget(durston_labeling)
         second_row_layout.addWidget(QSpinBox())
+        second_row_layout.addStretch(3)
 
         # Add the second row layout to the form layout
         layout.addRow(second_row_layout)
