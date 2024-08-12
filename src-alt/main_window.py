@@ -65,8 +65,8 @@ class MainWindow(QMainWindow):
         self.resize(1000, 700)
 
         data = [
-            ["Label1", "file1.txt", "Align1", "A: T\nG: F\nT: F", ""],
-            ["Label2", "file2.txt", "Align2", "A: T\nG: F\nT: F", ""],
+            ["A", "msa_file1.txt", "None", "Columns: 3444\nSequences: 439\nLabels: A0...A3443", ""],
+            ["B", "msa_file2.txt", "MUSCLE", "Columns: 1175\nSequences: 439\nLabels: B0...B1174", ""],
         ]
 
         # Toplevel container
