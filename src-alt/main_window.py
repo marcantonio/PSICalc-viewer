@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QCheckBox,
-    QSpinBox, QSlider, QPushButton, QPlainTextEdit, QGroupBox, QFormLayout, QRadioButton, QButtonGroup
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton,
+    QPlainTextEdit, QGroupBox, QFormLayout, QRadioButton, QButtonGroup
 )
 from msa_table_view import MsaTableView
 import sys
@@ -18,15 +18,25 @@ class ClusteringParams(QWidget):
         labeling_buttongroup = QButtonGroup(self)
         labeling_buttongroup.addButton(deweese_labeling)
         labeling_buttongroup.addButton(durston_labeling)
-        labeling_vbox = QVBoxLayout()
-        labeling_vbox.addWidget(deweese_labeling)
-        labeling_hbox = QHBoxLayout()
-        labeling_hbox.addWidget(durston_labeling)
-        labeling_hbox.addWidget(QSpinBox())
-        labeling_hbox.addStretch()
-        labeling_vbox.addLayout(labeling_hbox)
-        layout.addRow(labeling_vbox)
 
+        # Create a horizontal layout for the first row of radio buttons
+        first_row_layout = QHBoxLayout()
+        first_row_layout.setAlignment(Qt.AlignLeft)
+        first_row_layout.addWidget(deweese_labeling)
+
+        # Add the first row layout to the form layout
+        layout.addRow(first_row_layout)
+
+        # Create a horizontal layout for the second row of radio buttons and spinbox
+        second_row_layout = QHBoxLayout()
+        second_row_layout.setAlignment(Qt.AlignLeft)
+        second_row_layout.addWidget(durston_labeling)
+        second_row_layout.addWidget(QSpinBox())
+
+        # Add the second row layout to the form layout
+        layout.addRow(second_row_layout)
+
+        # The rest of the widget creation
         insertion_removal_layout = QHBoxLayout()
         insertion_removal_slider = QSlider(Qt.Horizontal)
         self.insertion_removal_label = QLabel("0%")
