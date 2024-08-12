@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QSlider, QPushButton,
-    QPlainTextEdit, QGroupBox, QFormLayout, QRadioButton, QButtonGroup
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton,
+    QDoubleSpinBox, QPlainTextEdit, QGroupBox, QFormLayout, QRadioButton, QButtonGroup
 )
 from msa_table_view import MsaTableView
 import sys
@@ -13,54 +13,49 @@ class ClusteringParams(QWidget):
 
         layout = QFormLayout(self)
 
-        deweese_labeling = QRadioButton("Label using first row mapping")
         durston_labeling = QRadioButton("Label using column:")
+        deweese_labeling = QRadioButton("Label using first row mapping")
         labeling_buttongroup = QButtonGroup(self)
-        labeling_buttongroup.addButton(deweese_labeling)
         labeling_buttongroup.addButton(durston_labeling)
+        labeling_buttongroup.addButton(deweese_labeling)
 
-        # Create a horizontal layout for the first row of radio buttons
-        first_row_layout = QHBoxLayout()
-        #first_row_layout.setAlignment(Qt.AlignLeft)
-        first_row_layout.addStretch(5)
-        first_row_layout.addWidget(deweese_labeling)
-        first_row_layout.addStretch(12)
+        durston_layout = QHBoxLayout()
+        durston_layout.addStretch(1)
+        durston_layout.setAlignment(Qt.AlignLeft)
+        durston_labeling.setChecked(True)
+        durston_layout.addWidget(durston_labeling)
+        durston_layout.addWidget(QSpinBox())
+        durston_layout.addStretch(3)
+        layout.addRow(durston_layout)
 
-        # Add the first row layout to the form layout
-        layout.addRow(first_row_layout)
+        deweese_layout = QHBoxLayout()
+        deweese_layout.addStretch(5)
+        deweese_layout.addWidget(deweese_labeling)
+        deweese_layout.addStretch(12)
+        layout.addRow(deweese_layout)
 
-        # Create a horizontal layout for the second row of radio buttons and spinbox
-        second_row_layout = QHBoxLayout()
-        second_row_layout.addStretch(1)
-        second_row_layout.setAlignment(Qt.AlignLeft)
-        second_row_layout.addWidget(durston_labeling)
-        second_row_layout.addWidget(QSpinBox())
-        second_row_layout.addStretch(3)
-
-        # Add the second row layout to the form layout
-        layout.addRow(second_row_layout)
-
-        # The rest of the widget creation
-        insertion_removal_layout = QHBoxLayout()
-        insertion_removal_slider = QSlider(Qt.Horizontal)
-        self.insertion_removal_label = QLabel("0%")
-        insertion_removal_layout.addWidget(insertion_removal_slider)
-        insertion_removal_layout.addWidget(self.insertion_removal_label)
-        insertion_removal_layout.addStretch()  # Ensure label is right-aligned
-        layout.addRow(QLabel("Non-insertion percentage:"), insertion_removal_layout)
-        insertion_removal_slider.valueChanged.connect(self.update_insertion_removal_label)
+        insertion_layout = QHBoxLayout()
+        insertion_spinbox = QSpinBox()
+        insertion_spinbox.setRange(0, 100)
+        insertion_spinbox.setSuffix("%")
+        insertion_layout.addWidget(insertion_spinbox)
+        layout.addRow(QLabel("Non-insertion percentage:"), insertion_layout)
 
         spread_spinbox = QSpinBox()
         layout.addRow(QLabel("Spread:"), spread_spinbox)
 
-        entropy_cutoff_spinbox = QSpinBox()
+        entropy_cutoff_spinbox = QDoubleSpinBox()
+        entropy_cutoff_spinbox.setDecimals(2)
+        entropy_cutoff_spinbox.setRange(0.0, 0.25)
+        entropy_cutoff_spinbox.setSingleStep(0.01)
+
         layout.addRow(QLabel("Entropy cutoff:"), entropy_cutoff_spinbox)
 
-        run_clustering_button = QPushButton("Run clustering")
-        layout.addRow(run_clustering_button)
-
-    def update_insertion_removal_label(self, value):
-        self.insertion_removal_label.setText(f"{value}%")
+        run_button_layout = QHBoxLayout()
+        run_button = QPushButton("Run clustering")
+        run_button_layout.setAlignment(Qt.AlignCenter)
+        run_button_layout.addWidget(run_button)
+        layout.addRow(run_button_layout)
 
 
 class MainWindow(QMainWindow):
