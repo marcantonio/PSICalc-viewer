@@ -100,7 +100,7 @@ class MsaTableView(QWidget):
         font.setPointSize(14)
         self.table.setFont(font)
 
-        # PAdding and a line between rows
+        # Padding and a line between rows
         self.table.setStyleSheet("""
             QTableView::item {
                 border-bottom: 1px solid lightgrey;
@@ -123,7 +123,7 @@ class MsaTableView(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.table)
 
-        add_button = QPushButton("Add")
+        add_button = QPushButton("Add file(s)...")
         add_button.clicked.connect(self.add_row)
         button_layout = QHBoxLayout()
         button_layout.addStretch()
