@@ -1,15 +1,18 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton,
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSpinBox, QPushButton, QStatusBar,
     QDoubleSpinBox, QPlainTextEdit, QGroupBox, QFormLayout, QRadioButton, QButtonGroup
 )
+from PySide6.QtGui import QMovie
+
 from msa_table_view import MsaTableView
 import sys
 
 
 class ClusteringParams(QWidget):
-    def __init__(self):
+    def __init__(self, main_window):
         super().__init__()
+        self.main_window = main_window
 
         layout = QFormLayout(self)
 
@@ -55,7 +58,11 @@ class ClusteringParams(QWidget):
         run_button = QPushButton("Run clustering")
         run_button_layout.setAlignment(Qt.AlignCenter)
         run_button_layout.addWidget(run_button)
+        run_button.clicked.connect(self.toggle_spinner)
         layout.addRow(run_button_layout)
+
+    def toggle_spinner(self):
+        self.main_window.toggle_spinner(self.sender())
 
 
 class MainWindow(QMainWindow):
@@ -83,12 +90,12 @@ class MainWindow(QMainWindow):
         msa_layout.addWidget(msa_table)
         vbox.addWidget(msa_groupbox)
 
-        # Lower viewes
+        # Lower views
         hbox = QHBoxLayout()
         vbox.addLayout(hbox, 1)
 
         # Clustering parameters
-        clustering_params = ClusteringParams()
+        clustering_params = ClusteringParams(self)
         clustering_params_groupbox = QGroupBox("Clustering parameters")
         clustering_params_layout = QVBoxLayout()
         clustering_params_layout.addWidget(clustering_params)
@@ -97,6 +104,45 @@ class MainWindow(QMainWindow):
 
         text_box = QPlainTextEdit()
         hbox.addWidget(text_box, 2)
+
+        # Status Bar
+        self.status_bar = QStatusBar()
+        self.status_label = QLabel("Ready")
+        self.spinner = QLabel(self)
+
+        self.animation = QMovie("spinner.gif")
+        self.spinner.setFixedSize(16, 16)
+        self.spinner.setMovie(self.animation)
+        self.spinner.setVisible(False)
+
+        self.status_layout = QHBoxLayout()
+        self.status_layout.addWidget(self.status_label)
+        self.status_layout.addWidget(self.spinner)
+        self.status_layout.setContentsMargins(10, 5, 0, 5)
+        self.status_layout.addStretch()
+
+        container_widget = QWidget()
+        container_widget.setLayout(self.status_layout)
+        self.status_bar.addWidget(container_widget)
+
+        self.setStatusBar(self.status_bar)
+
+    def toggle_spinner(self, button):
+        if self.spinner.isVisible():
+            self.update_status(working=False)
+            button.setText("Run clustering")
+        else:
+            self.update_status("Clustering...", working=True)
+            button.setText("Stop clustering")
+
+    def update_status(self, message="Ready", working=True):
+        self.status_label.setText(message)
+        if working:
+            self.spinner.setVisible(True)
+            self.animation.start()
+        else:
+            self.spinner.setVisible(False)
+            self.animation.stop()
 
 
 app = QApplication(sys.argv)
