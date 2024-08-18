@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QTableView, QVBoxLayout, QPushButton, QWidget, QAbstractItemView, QHeaderView, QHBoxLayout,
-    QStyledItemDelegate, QStyle, QComboBox
+    QStyledItemDelegate, QStyle, QComboBox, QFileDialog
 )
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
 from PySide6.QtGui import QFont
@@ -42,14 +42,14 @@ class TopLeftAlignDelegate(QStyledItemDelegate):
 class MsaFiles(QAbstractTableModel):
     def __init__(self, data):
         super().__init__()
-        self.headers = ["Label", "Filename", "Apply alignment?", "Details", ""]
+        self._headers = ["Label", "Filename", "Apply alignment?", "Details", ""]
         self._data = data
 
     def rowCount(self, parent=QModelIndex()):
         return len(self._data)
 
     def columnCount(self, parent=QModelIndex()):
-        return len(self._data[0])
+        return len(self._headers)
 
     def data(self, index, role):
         if role == Qt.DisplayRole:
@@ -72,7 +72,7 @@ class MsaFiles(QAbstractTableModel):
 
     def headerData(self, section, orientation, role):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
-            return self.headers[section]
+            return self._headers[section]
 
     def insertRows(self, position, rows=1, parent=QModelIndex()):
         self.beginInsertRows(parent, position, position + rows - 1)
@@ -85,7 +85,14 @@ class MsaFiles(QAbstractTableModel):
 class MsaTableView(QWidget):
     def __init__(self, data, parent=None):
         super().__init__(parent)
-        self.model = MsaFiles(data)
+
+        # Use the data passed in or insert a dummy row to calculate the proper row height
+        # later
+        if data:
+            self.model = MsaFiles(data)
+        else:
+            self.model = MsaFiles([["", "", "None", "", ""]])
+
         self.table = QTableView()
         self.table.setModel(self.model)
         self.table.setShowGrid(False)
@@ -114,7 +121,7 @@ class MsaTableView(QWidget):
         # Cell align text
         self.table.setItemDelegate(TopLeftAlignDelegate(self.table))
 
-        # Two rows height
+        # Two rows height. This works because a dummy row is inserted above
         self.table.setFixedHeight(self.table.verticalHeader().sectionSize(0) * 2 + self.table.horizontalHeader().height())
 
         for i in range(self.model.rowCount()):
@@ -124,7 +131,7 @@ class MsaTableView(QWidget):
         layout.addWidget(self.table)
 
         add_button = QPushButton("Add file(s)...")
-        add_button.clicked.connect(self.add_row)
+        add_button.clicked.connect(self.add_files)
         button_layout = QHBoxLayout()
         button_layout.addStretch()
         button_layout.addWidget(add_button)
@@ -132,12 +139,15 @@ class MsaTableView(QWidget):
         layout.addLayout(button_layout)
         self.setLayout(layout)
 
-        self.table.setColumnWidth(0, self.table.fontMetrics().horizontalAdvance(self.model.headers[0]) + 30)
+        self.table.setColumnWidth(0, self.table.fontMetrics().horizontalAdvance(self.model._headers[0]) + 30)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setColumnWidth(2, self.table.fontMetrics().horizontalAdvance(self.model.headers[2]) + 50)
+        self.table.setColumnWidth(2, self.table.fontMetrics().horizontalAdvance(self.model._headers[2]) + 50)
         self.table.setColumnWidth(3, self.table.fontMetrics().horizontalAdvance("Sequences: XXXXX") + 50)
 
         self.table.setColumnWidth(4, 16 + 10)
+
+        # Remove the dummy row used to calculate table height
+        self.remove_row(0)
 
     def set_remove_button(self, row):
         button = QPushButton()
@@ -153,6 +163,35 @@ class MsaTableView(QWidget):
         for i in range(self.model.rowCount()):
             self.set_remove_button(i)
 
-    def add_row(self):
-        self.model.insertRows(self.model.rowCount(), 1)
-        self.set_remove_button(self.model.rowCount() - 1)
+    def add_files(self):
+        files = QFileDialog.getOpenFileNames()[0]
+        label_gen = MsaTableView.label_gen()
+        existing_labels = {self.model.data(self.model.index(row, 0), Qt.DisplayRole) for row in range(self.model.rowCount())}
+        existing_files = {self.model.data(self.model.index(row, 1), Qt.DisplayRole) for row in range(self.model.rowCount())}
+
+        for file in files:
+            # Just skip files that already exist
+            if file not in existing_files:
+                # Make sure labels are unique
+                label = next(label_gen)
+                while label in existing_labels:
+                    label = next(label_gen)
+
+                self.model.insertRows(self.model.rowCount(), 1)
+                self.model.setData(self.model.index(self.model.rowCount() - 1, 0), label, Qt.EditRole)
+                self.model.setData(self.model.index(self.model.rowCount() - 1, 1), file, Qt.EditRole)
+                self.set_remove_button(self.model.rowCount() - 1)
+
+                existing_files.add(file)
+                existing_labels.add(label)
+
+    @staticmethod
+    def label_gen():
+        """
+        Generator to create labels A-Z, AA-ZZ, etc
+        """
+        letters = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        labels = list(letters)
+        while True:
+            yield from labels
+            labels = [a+b for a in labels for b in letters]
