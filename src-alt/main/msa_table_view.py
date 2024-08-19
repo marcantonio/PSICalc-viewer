@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import (
     QTableView, QVBoxLayout, QPushButton, QWidget, QAbstractItemView, QHeaderView, QHBoxLayout,
-    QStyledItemDelegate, QStyle, QComboBox, QFileDialog
+    QStyledItemDelegate, QStyle, QComboBox, QFileDialog, QMessageBox
 )
-from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex
+from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
 from PySide6.QtGui import QFont
 
 
@@ -40,6 +40,8 @@ class TopLeftAlignDelegate(QStyledItemDelegate):
 
 
 class MsaFiles(QAbstractTableModel):
+    error = Signal(str, str)
+
     def __init__(self, data):
         super().__init__()
         self._headers = ["Label", "Filename", "Apply alignment?", "Details", ""]
@@ -52,13 +54,17 @@ class MsaFiles(QAbstractTableModel):
         return len(self._headers)
 
     def data(self, index, role):
-        if role == Qt.DisplayRole:
-            return self._data[index.row()][index.column()]
-        if role == Qt.EditRole:
+        if not self._data:
+            return None
+
+        if role == Qt.DisplayRole or role == Qt.EditRole:
             return self._data[index.row()][index.column()]
 
     def setData(self, index, value, role=Qt.EditRole):
         if role == Qt.EditRole:
+            # Ensure label is valid before setting
+            if index.column() == 0 and not self.is_valid_label(value, index.row()):
+                return False
             self._data[index.row()][index.column()] = value
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
@@ -66,7 +72,10 @@ class MsaFiles(QAbstractTableModel):
 
     def flags(self, index):
         default_flags = super().flags(index)
-        if index.column() == 2:
+        # Make the label and alignment columns editable. Disable label for a single row
+        if self.rowCount() > 1 and index.column() in [0, 2]:
+            return default_flags | Qt.ItemIsEditable
+        elif index.column() == 2:
             return default_flags | Qt.ItemIsEditable
         return default_flags
 
@@ -81,22 +90,36 @@ class MsaFiles(QAbstractTableModel):
         self.endInsertRows()
         return True
 
+    def is_valid_label(self, new_label, row):
+        if not new_label:
+            self.error.emit("Error", "Label cannot be blank")
+            return False
+
+        existing_labels = {self.data(self.index(r, 0), Qt.DisplayRole) for r in range(self.rowCount()) if r != row}
+        if new_label in existing_labels:
+            self.error.emit('Error', "Labels must be unique")
+            return False
+
+        return True
+
 
 class MsaTableView(QWidget):
     def __init__(self, data, parent=None):
         super().__init__(parent)
 
-        # Use the data passed in or insert a dummy row to calculate the proper row height
-        # later
+        # Use the data passed or insert a dummy row to calculate the row height later
         if data:
             self.model = MsaFiles(data)
         else:
             self.model = MsaFiles([["", "", "None", "", ""]])
 
+        # For errors from the model
+        self.model.error.connect(self.show_error)
+
         self.table = QTableView()
         self.table.setModel(self.model)
         self.table.setShowGrid(False)
-        self.table.setSelectionMode(QAbstractItemView.NoSelection)
+        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
 
         # Fixed row height
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.Fixed)
@@ -184,6 +207,9 @@ class MsaTableView(QWidget):
 
                 existing_files.add(file)
                 existing_labels.add(label)
+
+    def show_error(self, title, message):
+        QMessageBox.critical(self, title, message)
 
     @staticmethod
     def label_gen():
