@@ -4,18 +4,20 @@ import sys
 from main.clustering_params import ClusteringParams
 from main.msa_table_view import MsaTableView
 from main.status_bar import StatusBar
+from msa import Msa
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.msa = Msa()
         self.setWindowTitle("PSICalc Viewer")
         self.resize(1000, 700)
 
-        data = [
-            #["A", "msa_file1.txt", "None", "Columns: 3444\nSequences: 439\nLabels: A0...A3443", ""],
-            #["B", "msa_file2.txt", "MUSCLE", "Columns: 1175\nSequences: 439\nLabels: B0...B1174", ""],
-        ]
+        # data = [
+        #     ["A", "msa_file1.txt", "None", "Columns: 3444\nSequences: 439\nLabels: A0...A3443", ""],
+        #     ["B", "msa_file2.txt", "MUSCLE", "Columns: 1175\nSequences: 439\nLabels: B0...B1174", ""],
+        # ]
 
         # Toplevel container
         container = QWidget(self)
@@ -26,7 +28,7 @@ class MainWindow(QMainWindow):
         # File table
         msa_groupbox = QGroupBox("MSA files")
         msa_layout = QVBoxLayout(msa_groupbox)
-        msa_table = MsaTableView(data)
+        msa_table = MsaTableView(self, callback=lambda files, labels: self.msa.import_files(files, labels))
         msa_layout.addWidget(msa_table)
         vbox.addWidget(msa_groupbox)
 
