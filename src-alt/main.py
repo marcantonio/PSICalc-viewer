@@ -4,13 +4,12 @@ import sys
 from main.clustering_params import ClusteringParams
 from main.msa_table_view import MsaTableView
 from main.status_bar import StatusBar
-from msa import Msa
+from msa_files import MsaFiles
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, view_model):
         super().__init__()
-        self.msa = Msa()
         self.setWindowTitle("PSICalc Viewer")
         self.resize(1000, 700)
 
@@ -25,10 +24,10 @@ class MainWindow(QMainWindow):
         vbox = QVBoxLayout()
         container.setLayout(vbox)
 
-        # File table
+        # MSA files table
         msa_groupbox = QGroupBox("MSA files")
         msa_layout = QVBoxLayout(msa_groupbox)
-        msa_table = MsaTableView(self, callback=lambda files, labels: self.msa.import_files(files, labels))
+        msa_table = MsaTableView(self, view_model)
         msa_layout.addWidget(msa_table)
         vbox.addWidget(msa_groupbox)
 
@@ -53,9 +52,11 @@ class MainWindow(QMainWindow):
         clustering_params.runClicked.connect(self.status_bar.toggle_spinner)
 
 
+msa_files = MsaFiles()
+
 app = QApplication(sys.argv)
 
-window = MainWindow()
+window = MainWindow(msa_files)
 window.show()
 
 app.exec()
