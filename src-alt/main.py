@@ -8,8 +8,9 @@ from msa_files import MsaFiles
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, view_model):
+    def __init__(self, tableViewModel):
         super().__init__()
+        self.tableViewModel = tableViewModel
         self.setWindowTitle("PSICalc Viewer")
         self.resize(1000, 700)
 
@@ -25,38 +26,41 @@ class MainWindow(QMainWindow):
         container.setLayout(vbox)
 
         # MSA files table
-        msa_groupbox = QGroupBox("MSA files")
-        msa_layout = QVBoxLayout(msa_groupbox)
-        msa_table = MsaTableView(self, view_model)
-        msa_layout.addWidget(msa_table)
-        vbox.addWidget(msa_groupbox)
+        msaGroupbox = QGroupBox("MSA files")
+        msaLayout = QVBoxLayout(msaGroupbox)
+        msaTable = MsaTableView(self, tableViewModel)
+        msaLayout.addWidget(msaTable)
+        vbox.addWidget(msaGroupbox)
 
         # Lower views
         hbox = QHBoxLayout()
         vbox.addLayout(hbox, 1)
 
         # Clustering parameters
-        clustering_params = ClusteringParams()
-        clustering_params_groupbox = QGroupBox("Clustering parameters")
-        clustering_params_layout = QVBoxLayout()
-        clustering_params_layout.addWidget(clustering_params)
-        clustering_params_groupbox.setLayout(clustering_params_layout)
-        hbox.addWidget(clustering_params_groupbox, 1)
+        clusteringParams = ClusteringParams()
+        clusteringParamsGroupbox = QGroupBox("Clustering parameters")
+        clusteringParamsLayout = QVBoxLayout()
+        clusteringParamsLayout.addWidget(clusteringParams)
+        clusteringParamsGroupbox.setLayout(clusteringParamsLayout)
+        hbox.addWidget(clusteringParamsGroupbox, 1)
 
-        text_box = QPlainTextEdit()
-        hbox.addWidget(text_box, 2)
+        textBox = QPlainTextEdit()
+        hbox.addWidget(textBox, 2)
 
         # Status Bar
-        self.status_bar = StatusBar()
-        self.setStatusBar(self.status_bar)
-        clustering_params.runClicked.connect(self.status_bar.toggle_spinner)
+        self.statusBar = StatusBar()
+        self.setStatusBar(self.statusBar)
+        clusteringParams.runClicked.connect(self.statusBar.toggleSpinner)
 
-
-msa_files = MsaFiles()
 
 app = QApplication(sys.argv)
 
+# Start with a dummy row to calculate the row height
+msa_files = MsaFiles([["", "", "None", "", ""]])
 window = MainWindow(msa_files)
 window.show()
+# Remove the dummy row used to calculate table height
+# TODO: Don't do this if real data is passed in
+window.tableViewModel.removeFile(0)
 
 app.exec()

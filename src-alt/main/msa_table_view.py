@@ -2,20 +2,27 @@ from PySide6.QtWidgets import (
     QTableView, QVBoxLayout, QPushButton, QWidget, QAbstractItemView, QHeaderView,
     QHBoxLayout, QStyledItemDelegate, QStyle, QComboBox, QFileDialog, QMessageBox
 )
-from PySide6.QtCore import Qt, QModelIndex
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 
 
 class MsaTableView(QWidget):
-    def __init__(self, parent, model):
+    def __init__(self, parent, viewModel):
         super().__init__(parent)
-        self.model = model
+        self.viewModel = viewModel
+
+        # Respond to the model
+        self.viewModel.rowsInserted.connect(self.rowsUpdated)
+        self.viewModel.rowsRemoved.connect(self.rowsUpdated)
 
         # For errors from the model
-        self.model.error.connect(self.show_error)
+        self.viewModel.error.connect(self.showError)
 
+        self.initUI()
+
+    def initUI(self):
         self.table = QTableView()
-        self.table.setModel(self.model)
+        self.table.setModel(self.viewModel)
         self.table.setShowGrid(False)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
 
@@ -46,88 +53,47 @@ class MsaTableView(QWidget):
         self.table.setFixedHeight(self.table.verticalHeader().sectionSize(0) * 2 + self.table.horizontalHeader().height())
 
         # Add the remove buttons to each row
-        for i in range(self.model.rowCount()):
-            self.add_remove_button(i)
+        for row in range(self.viewModel.rowCount()):
+            self.addRemoveButton(row)
 
         layout = QVBoxLayout()
         layout.addWidget(self.table)
 
         # Add button
-        add_button = QPushButton("Add file(s)...")
-        add_button.clicked.connect(self.add_files)
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        button_layout.addWidget(add_button)
+        addButton = QPushButton("Add file(s)...")
+        addButton.clicked.connect(self.addFiles)
+        buttonLayout = QHBoxLayout()
+        buttonLayout.addStretch()
+        buttonLayout.addWidget(addButton)
 
-        layout.addLayout(button_layout)
+        layout.addLayout(buttonLayout)
         self.setLayout(layout)
 
         # Column sizes
-        self.table.setColumnWidth(0, self.table.fontMetrics().horizontalAdvance(self.model._headers[0]) + 30)
+        self.table.setColumnWidth(0, self.table.fontMetrics().horizontalAdvance(self.viewModel._headers[0]) + 30)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setColumnWidth(2, self.table.fontMetrics().horizontalAdvance(self.model._headers[2]) + 50)
-        self.table.setColumnWidth(3, self.table.fontMetrics().horizontalAdvance("Sequences: XXXXX") + 50)
+        self.table.setColumnWidth(2, self.table.fontMetrics().horizontalAdvance(self.viewModel._headers[2]) + 50)
+        self.table.setColumnWidth(3, self.table.fontMetrics().horizontalAdvance("Sequences: XXXXX") + 50)  # Some dummy text
         self.table.setColumnWidth(4, 26)  # Image is 16px plus padding
 
-        # Remove the dummy row used to calculate table height
-        # TODO: Don't do this if real data is passed in
-        self.remove_file(0)
-
-    def add_remove_button(self, row):
+    def addRemoveButton(self, row):
         button = QPushButton()
         button.setIcon(self.style().standardIcon(QStyle.SP_DialogCloseButton))
         button.setStyleSheet("border: none;")
-        button.clicked.connect(lambda _, row=row: self.remove_file(row))
-        self.table.setIndexWidget(self.model.index(row, 4), button)
+        button.clicked.connect(lambda _, row=row: self.viewModel.removeFile(row))
+        self.table.setIndexWidget(self.viewModel.index(row, 4), button)
 
-    def remove_file(self, row):
-        self.model.beginRemoveRows(QModelIndex(), row, row)
-        self.model._data.pop(row)
-        self.model.endRemoveRows()
-        # Re-add all buttons so the new indices are correct
-        for i in range(self.model.rowCount()):
-            self.add_remove_button(i)
-
-    def add_files(self):
+    def addFiles(self):
         files = QFileDialog.getOpenFileNames()[0]
-        label_gen = MsaTableView.label_gen()
-        existing_labels = {self.model.data(self.model.index(row, 0), Qt.EditRole) for row in range(self.model.rowCount())}
-        existing_files = {self.model.data(self.model.index(row, 1), Qt.EditRole) for row in range(self.model.rowCount())}
+        self.viewModel.addFiles(files)
 
-        new_files = []
-        new_labels = []
-        for file in files:
-            # Just skip files that already exist
-            if file not in existing_files:
-                label = next(label_gen)
-                # Make sure labels are unique
-                while label in existing_labels:
-                    label = next(label_gen)
+    def rowsUpdated(self, parent, first, last):
+        # Re-add all buttons so the new indices are correct
+        for i in range(self.viewModel.rowCount()):
+            self.addRemoveButton(i)
 
-                self.model.insertRows(self.model.rowCount(), 1)
-                row = self.model.rowCount() - 1
-                self.model.setData(self.model.index(row, 0), label, Qt.EditRole)
-                self.model.setData(self.model.index(row, 1), file, Qt.EditRole)
-                self.add_remove_button(row)
-                existing_files.add(file)
-                existing_labels.add(label)
-                new_files.append(file)
-                new_labels.append(label)
-
-        if new_files:
-            self.model.importFiles(new_files, new_labels)
-
-    def show_error(self, title, message):
+    def showError(self, title, message):
         QMessageBox.critical(self, title, message)
-
-    # Generator to create labels A-Z, AA-ZZ, etc
-    @staticmethod
-    def label_gen():
-        letters = list('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-        labels = list(letters)
-        while True:
-            yield from labels
-            labels = [a+b for a in labels for b in letters]
 
 
 # Adds a combo box to the alignment column

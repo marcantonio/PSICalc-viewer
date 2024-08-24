@@ -7,7 +7,7 @@ from PySide6.QtGui import QMovie
 class StatusBar(QStatusBar):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.status_label = QLabel("Ready")
+        self.statusLabel = QLabel("Ready")
         self.spinner = QLabel(self)
 
         self.animation = QMovie("spinner.gif")
@@ -15,26 +15,26 @@ class StatusBar(QStatusBar):
         self.spinner.setMovie(self.animation)
         self.spinner.setVisible(False)
 
-        self.status_layout = QHBoxLayout()
-        self.status_layout.addWidget(self.status_label)
-        self.status_layout.addWidget(self.spinner)
-        self.status_layout.setContentsMargins(10, 5, 0, 5)
-        self.status_layout.addStretch()
+        self.statusLayout = QHBoxLayout()
+        self.statusLayout.addWidget(self.statusLabel)
+        self.statusLayout.addWidget(self.spinner)
+        self.statusLayout.setContentsMargins(10, 5, 0, 5)
+        self.statusLayout.addStretch()
 
-        container_widget = QWidget()
-        container_widget.setLayout(self.status_layout)
-        self.addWidget(container_widget)
+        containerWidget = QWidget()
+        containerWidget.setLayout(self.statusLayout)
+        self.addWidget(containerWidget)
 
-    def toggle_spinner(self, button):
+    def toggleSpinner(self, button):
         if self.spinner.isVisible():
-            self.update_status(working=False)
+            self.updateStatus(working=False)
             button.setText("Run clustering")
         else:
-            self.update_status("Clustering...", working=True)
+            self.updateStatus("Clustering...", working=True)
             button.setText("Stop clustering")
 
-    def update_status(self, message="Ready", working=True):
-        self.status_label.setText(message)
+    def updateStatus(self, message="Ready", working=True):
+        self.statusLabel.setText(message)
         if working:
             self.spinner.setVisible(True)
             self.animation.start()
