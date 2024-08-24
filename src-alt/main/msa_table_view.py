@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (
     QTableView, QVBoxLayout, QPushButton, QWidget, QAbstractItemView, QHeaderView,
-    QHBoxLayout, QStyledItemDelegate, QStyle, QComboBox, QFileDialog, QMessageBox
+    QHBoxLayout, QStyledItemDelegate, QStyle, QComboBox, QFileDialog
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
@@ -14,9 +14,6 @@ class MsaTableView(QWidget):
         # Respond to the model
         self.viewModel.rowsInserted.connect(self.rowsUpdated)
         self.viewModel.rowsRemoved.connect(self.rowsUpdated)
-
-        # For errors from the model
-        self.viewModel.error.connect(self.showError)
 
         self.initUI()
 
@@ -87,13 +84,11 @@ class MsaTableView(QWidget):
         files = QFileDialog.getOpenFileNames()[0]
         self.viewModel.addFiles(files)
 
+    # Signaled changes from the model
     def rowsUpdated(self, parent, first, last):
         # Re-add all buttons so the new indices are correct
         for i in range(self.viewModel.rowCount()):
             self.addRemoveButton(i)
-
-    def showError(self, title, message):
-        QMessageBox.critical(self, title, message)
 
 
 # Adds a combo box to the alignment column

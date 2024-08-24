@@ -5,7 +5,7 @@ import psicalc as pc
 
 
 class MsaFiles(QAbstractTableModel):
-    error = Signal(str, str)
+    error = Signal(str, str, str)
 
     def __init__(self, data=[]):
         super().__init__()
@@ -68,12 +68,12 @@ class MsaFiles(QAbstractTableModel):
 
     def isValidLabel(self, newLabel, row):
         if not newLabel:
-            self.error.emit("Error", "Label cannot be blank")
+            self.error.emit("Error", "Label cannot be blank", None)
             return False
 
         existingLabels = {self.data(self.index(r, 0), Qt.EditRole) for r in range(self.rowCount()) if r != row}
         if newLabel in existingLabels:
-            self.error.emit('Error', "Labels must be unique")
+            self.error.emit("Error", "Labels must be unique", None)
             return False
 
         return True
@@ -97,7 +97,6 @@ class MsaFiles(QAbstractTableModel):
                 row = self.rowCount() - 1
                 self.setData(self.index(row, 0), label, Qt.EditRole)
                 self.setData(self.index(row, 1), file, Qt.EditRole)
-                #self.addRemoveButton(row)
                 existingFiles.add(file)
                 existingLabels.add(label)
                 newFiles.append(file)
@@ -117,12 +116,14 @@ class MsaFiles(QAbstractTableModel):
 
         # Read all of the files and store in a list of dataframes
         for file in files:
-            if str(file).endswith((".txt", ".fasta")):
-                df = pc.read_txt_file_format(file)
-            else:
-                df = pc.read_csv_file_format(file)
-
-            self.msa.addDataframe(df)
+            try:
+                if str(file).endswith((".txt", ".fasta")):
+                    df = pc.read_txt_file_format(file)
+                else:
+                    df = pc.read_csv_file_format(file)
+                self.msa.addDataframe(df)
+            except Exception as e:
+                self.error.emit("Error", f"Failed to read file {file}", str(e))
 
     # Generator to create labels A-Z, AA-ZZ, etc
     @staticmethod
