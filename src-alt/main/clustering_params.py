@@ -5,54 +5,76 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QDoubleSpi
 class ClusteringParams(QWidget):
     runClicked = Signal(QObject)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, viewModel, parent=None):
+        super().__init__(parent)
+        self.viewModel = viewModel
+
         layout = QFormLayout(self)
 
-        durston_labeling = QRadioButton("Label using column:")
-        deweese_labeling = QRadioButton("Label using first row mapping")
-        labeling_buttongroup = QButtonGroup(self)
-        labeling_buttongroup.addButton(durston_labeling)
-        labeling_buttongroup.addButton(deweese_labeling)
+        # Durston radio button
+        durstonLayout = QHBoxLayout()
+        durstonLayout.addStretch(1)
+        durstonLayout.setAlignment(Qt.AlignLeft)
+        durstonRowLabeling = QRadioButton("Label using column:")
+        durstonRowLabeling.setChecked(True)
+        durstonRowLabeling.toggled.connect(lambda checked: durstonColumnSpinBox.setEnabled(checked))
+        durstonLayout.addWidget(durstonRowLabeling)
 
-        durston_layout = QHBoxLayout()
-        durston_layout.addStretch(1)
-        durston_layout.setAlignment(Qt.AlignLeft)
-        durston_labeling.setChecked(True)
-        durston_layout.addWidget(durston_labeling)
-        durston_layout.addWidget(QSpinBox())
-        durston_layout.addStretch(3)
-        layout.addRow(durston_layout)
+        # Durston column spinbox
+        durstonColumnSpinBox = QSpinBox()
+        durstonColumnSpinBox.valueChanged.connect(self.viewModel.updateDurstonColumn)
+        durstonLayout.addWidget(durstonColumnSpinBox)
+        durstonLayout.addStretch(3)
+        layout.addRow(durstonLayout)
 
-        deweese_layout = QHBoxLayout()
-        deweese_layout.addStretch(5)
-        deweese_layout.addWidget(deweese_labeling)
-        deweese_layout.addStretch(12)
-        layout.addRow(deweese_layout)
+        # Deweese radio button
+        deweeseLayout = QHBoxLayout()
+        deweeseLayout.addStretch(5)
+        deweeseRowLabeling = QRadioButton("Label using first row mapping")
+        deweeseLayout.addWidget(deweeseRowLabeling)
+        deweeseLayout.addStretch(12)
+        layout.addRow(deweeseLayout)
 
-        insertion_layout = QHBoxLayout()
-        insertion_spinbox = QSpinBox()
-        insertion_spinbox.setRange(0, 100)
-        insertion_spinbox.setSuffix("%")
-        insertion_layout.addWidget(insertion_spinbox)
-        layout.addRow(QLabel("Non-insertion percentage:"), insertion_layout)
+        # Button group for both
+        rowLabelingButtonGroup = QButtonGroup(self)
+        rowLabelingButtonGroup.addButton(durstonRowLabeling, 1)
+        rowLabelingButtonGroup.addButton(deweeseRowLabeling, 2)
+        rowLabelingButtonGroup.idToggled.connect(self.onRowLabelingClicked)
 
-        spread_spinbox = QSpinBox()
-        layout.addRow(QLabel("Spread:"), spread_spinbox)
+        # Insertion spinbox
+        insertionLayout = QHBoxLayout()
+        insertionSpinbox = QSpinBox()
+        insertionSpinbox.setRange(0, 100)
+        insertionSpinbox.setSuffix("%")
+        insertionSpinbox.valueChanged.connect(self.viewModel.updateInsertion)
+        insertionLayout.addWidget(insertionSpinbox)
+        layout.addRow(QLabel("Non-insertion percentage:"), insertionLayout)
 
-        entropy_cutoff_spinbox = QDoubleSpinBox()
-        entropy_cutoff_spinbox.setDecimals(2)
-        entropy_cutoff_spinbox.setRange(0.0, 0.25)
-        entropy_cutoff_spinbox.setSingleStep(0.01)
+        # Spread spinbox
+        spreadSpinbox = QSpinBox()
+        spreadSpinbox.setRange(1, 99)
+        spreadSpinbox.valueChanged.connect(self.viewModel.updateSpread)
+        layout.addRow(QLabel("Spread:"), spreadSpinbox)
 
-        layout.addRow(QLabel("Entropy cutoff:"), entropy_cutoff_spinbox)
+        # Entropy cutoff spinbox
+        entropyCutoffSpinbox = QDoubleSpinBox()
+        entropyCutoffSpinbox.setDecimals(2)
+        entropyCutoffSpinbox.setRange(0.0, 0.25)
+        entropyCutoffSpinbox.setSingleStep(0.01)
+        entropyCutoffSpinbox.valueChanged.connect(self.viewModel.updateEntropyCutoff)
+        layout.addRow(QLabel("Entropy cutoff:"), entropyCutoffSpinbox)
 
-        run_button_layout = QHBoxLayout()
-        run_button = QPushButton("Run clustering")
-        run_button_layout.setAlignment(Qt.AlignCenter)
-        run_button_layout.addWidget(run_button)
-        run_button.clicked.connect(lambda: self.on_run_button_clicked(run_button))
-        layout.addRow(run_button_layout)
+        # Run button
+        runButtonLayout = QHBoxLayout()
+        runButton = QPushButton("Run clustering")
+        runButtonLayout.setAlignment(Qt.AlignCenter)
+        runButtonLayout.addWidget(runButton)
+        runButton.clicked.connect(lambda: self.onRunButtonClicked(runButton))
+        layout.addRow(runButtonLayout)
 
-    def on_run_button_clicked(self, button):
+    def onRunButtonClicked(self, button):
         self.runClicked.emit(button)
+
+    def onRowLabelingClicked(self, id, checked):
+        if checked:
+            self.viewModel.updateRowLabelingMethod("durston" if id == 1 else "deweese")

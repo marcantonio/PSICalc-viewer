@@ -125,6 +125,21 @@ class MsaFiles(QAbstractTableModel):
             except Exception as e:
                 self.error.emit("Error", f"Failed to read file {file}", str(e))
 
+    def updateRowLabelingMethod(self, value):
+        self.msa.setRowLabelingMethod(value)
+
+    def updateDurstonColumn(self, value):
+        self.msa.setDurstonColumn(value)
+
+    def updateInsertion(self, value):
+        self.msa.setInsertion(value)
+
+    def updateSpread(self, value):
+        self.msa.setSpread(value)
+
+    def updateEntropyCutoff(self, value):
+        self.msa.setEntropyCutoff(value)
+
     # Generator to create labels A-Z, AA-ZZ, etc
     @staticmethod
     def labelGen():

@@ -3,7 +3,7 @@ from PySide6.QtGui import QFont
 
 
 class ErrorDialog(QMessageBox):
-    def __init__(self, parent, title, message, details):
+    def __init__(self, title, message, details, parent=None):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setIcon(QMessageBox.Critical)

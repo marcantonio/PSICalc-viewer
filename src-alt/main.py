@@ -37,23 +37,23 @@ class MainWindow(QMainWindow):
         vbox.addLayout(hbox, 1)
 
         # Clustering parameters
-        clusteringParams = ClusteringParams()
+        clusteringParams = ClusteringParams(self.viewModel, self)
         clusteringParamsGroupbox = QGroupBox("Clustering parameters")
         clusteringParamsLayout = QVBoxLayout()
         clusteringParamsLayout.addWidget(clusteringParams)
         clusteringParamsGroupbox.setLayout(clusteringParamsLayout)
         hbox.addWidget(clusteringParamsGroupbox, 1)
 
-        textBox = QPlainTextEdit()
+        textBox = QPlainTextEdit(self)
         hbox.addWidget(textBox, 2)
 
         # Status Bar
-        self.statusBar = StatusBar()
+        self.statusBar = StatusBar(self)
         self.setStatusBar(self.statusBar)
         clusteringParams.runClicked.connect(self.statusBar.toggleSpinner)
 
     def showError(self, title, message, details):
-        dialog = ErrorDialog(self, title, message, details)
+        dialog = ErrorDialog(title, message, details, self)
         dialog.exec()
 
 
