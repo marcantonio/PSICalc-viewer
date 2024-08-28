@@ -1,36 +1,34 @@
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
 
-from msa import Msa
-import psicalc as pc
 
-
-class MsaFiles(QAbstractTableModel):
+class MsaFileTable(QAbstractTableModel):
     error = Signal(str, str, str)
+    filesAdded = Signal(list, list)
+    fileRemoved = Signal(int)
 
-    def __init__(self, data=[]):
+    def __init__(self):
         super().__init__()
-        self.msa = Msa()
-        self._headers = ["Label", "Filename", "Apply alignment?", "Details", ""]
-        self._data = data
+        self.headers = ["Label", "Filename", "Apply alignment?", "Details", ""]
+        self.files = []
 
     def rowCount(self, parent=QModelIndex()):
-        return len(self._data)
+        return len(self.files)
 
     def columnCount(self, parent=QModelIndex()):
-        return len(self._headers)
+        return len(self.headers)
 
     def data(self, index, role):
-        if not self._data:
+        if not self.files:
             return None
 
         if role == Qt.DisplayRole:
             # Hide label for display if there's only 1 row
             if index.column() == 0 and self.rowCount() == 1:
                 return ""
-            return self._data[index.row()][index.column()]
+            return self.files[index.row()][index.column()]
 
         if role == Qt.EditRole:
-            return self._data[index.row()][index.column()]
+            return self.files[index.row()][index.column()]
 
         return None
 
@@ -39,7 +37,7 @@ class MsaFiles(QAbstractTableModel):
             # Ensure label is valid before setting
             if index.column() == 0 and not self.isValidLabel(value, index.row()):
                 return False
-            self._data[index.row()][index.column()] = value
+            self.files[index.row()][index.column()] = value
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
         return False
@@ -54,24 +52,38 @@ class MsaFiles(QAbstractTableModel):
             return defaultFlags | Qt.ItemIsEditable
         return defaultFlags
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section, orientation=Qt.Horizontal, role=Qt.DisplayRole):
         if role == Qt.DisplayRole and orientation == Qt.Horizontal:
-            return self._headers[section]
+            return self.headers[section]
         return None
 
     def insertRows(self, position, rows=1, parent=QModelIndex()):
         self.beginInsertRows(parent, position, position + rows - 1)
         for _ in range(rows):
-            self._data.insert(position, ["", "", "None", "", ""])
+            self.files.insert(position, ["", "", "None", "", ""])
         self.endInsertRows()
         return True
+
+    def removeRow(self, row):
+        self.beginRemoveRows(QModelIndex(), row, row)
+        self.files.pop(row)
+        self.endRemoveRows()
+
+    def getLabels(self, excludeRow=None):
+        if excludeRow is None:
+            return {self.data(self.index(row, 0), Qt.EditRole) for row in range(self.rowCount())}
+        else:
+            return {self.data(self.index(row, 0), Qt.EditRole) for row in range(self.rowCount()) if row != excludeRow}
+
+    def getFiles(self):
+        return {self.data(self.index(row, 1), Qt.EditRole) for row in range(self.rowCount())}
 
     def isValidLabel(self, newLabel, row):
         if not newLabel:
             self.error.emit("Error", "Label cannot be blank", None)
             return False
 
-        existingLabels = {self.data(self.index(r, 0), Qt.EditRole) for r in range(self.rowCount()) if r != row}
+        existingLabels = self.getLabels(excludeRow=row)
         if newLabel in existingLabels:
             self.error.emit("Error", "Labels must be unique", None)
             return False
@@ -79,9 +91,9 @@ class MsaFiles(QAbstractTableModel):
         return True
 
     def addFiles(self, files):
-        labelGen = MsaFiles.labelGen()
-        existingLabels = {self.data(self.index(row, 0), Qt.EditRole) for row in range(self.rowCount())}
-        existingFiles = {self.data(self.index(row, 1), Qt.EditRole) for row in range(self.rowCount())}
+        labelGen = MsaFileTable.labelGen()
+        existingLabels = self.getLabels()
+        existingFiles = self.getFiles()
 
         newFiles = []
         newLabels = []
@@ -103,42 +115,11 @@ class MsaFiles(QAbstractTableModel):
                 newLabels.append(label)
 
         if newFiles:
-            self.importFiles(newFiles, newLabels)
+            self.filesAdded.emit(newFiles, newLabels)
 
     def removeFile(self, row):
-        self.beginRemoveRows(QModelIndex(), row, row)
-        self._data.pop(row)
-        self.endRemoveRows()
-
-    def importFiles(self, files, labels):
-        if not files or not labels:
-            return
-
-        # Read all of the files and store in a list of dataframes
-        for file in files:
-            try:
-                if str(file).endswith((".txt", ".fasta")):
-                    df = pc.read_txt_file_format(file)
-                else:
-                    df = pc.read_csv_file_format(file)
-                self.msa.addDataframe(df)
-            except Exception as e:
-                self.error.emit("Error", f"Failed to read file {file}", str(e))
-
-    def updateRowLabelingMethod(self, value):
-        self.msa.setRowLabelingMethod(value)
-
-    def updateDurstonColumn(self, value):
-        self.msa.setDurstonColumn(value)
-
-    def updateInsertion(self, value):
-        self.msa.setInsertion(value)
-
-    def updateSpread(self, value):
-        self.msa.setSpread(value)
-
-    def updateEntropyCutoff(self, value):
-        self.msa.setEntropyCutoff(value)
+        self.removeRow(row)
+        self.fileRemoved.emit(row)
 
     # Generator to create labels A-Z, AA-ZZ, etc
     @staticmethod

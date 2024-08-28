@@ -1,70 +1,14 @@
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit, QGroupBox
+from PySide6.QtWidgets import QApplication
 import sys
 
-from error_dialog import ErrorDialog
-from main.clustering_params import ClusteringParams
-from main.msa_table_view import MsaTableView
-from main.status_bar import StatusBar
-from msa_files import MsaFiles
-
-
-class MainWindow(QMainWindow):
-    def __init__(self, viewModel):
-        super().__init__()
-        self.viewModel = viewModel
-
-        # For errors from the model
-        self.viewModel.error.connect(self.showError)
-
-        self.setWindowTitle("PSICalc Viewer")
-        self.resize(1000, 700)
-
-        # Toplevel container
-        container = QWidget(self)
-        self.setCentralWidget(container)
-        vbox = QVBoxLayout()
-        container.setLayout(vbox)
-
-        # MSA files table
-        msaGroupbox = QGroupBox("MSA files")
-        msaLayout = QVBoxLayout(msaGroupbox)
-        msaTable = MsaTableView(self, viewModel)
-        msaLayout.addWidget(msaTable)
-        vbox.addWidget(msaGroupbox)
-
-        # Lower views
-        hbox = QHBoxLayout()
-        vbox.addLayout(hbox, 1)
-
-        # Clustering parameters
-        clusteringParams = ClusteringParams(self.viewModel, self)
-        clusteringParamsGroupbox = QGroupBox("Clustering parameters")
-        clusteringParamsLayout = QVBoxLayout()
-        clusteringParamsLayout.addWidget(clusteringParams)
-        clusteringParamsGroupbox.setLayout(clusteringParamsLayout)
-        hbox.addWidget(clusteringParamsGroupbox, 1)
-
-        textBox = QPlainTextEdit(self)
-        hbox.addWidget(textBox, 2)
-
-        # Status Bar
-        self.statusBar = StatusBar(self)
-        self.setStatusBar(self.statusBar)
-        clusteringParams.runClicked.connect(self.statusBar.toggleSpinner)
-
-    def showError(self, title, message, details):
-        dialog = ErrorDialog(title, message, details, self)
-        dialog.exec()
-
+from model.merged_msa import MergedMsa
+from view.main import MainWindow
 
 app = QApplication(sys.argv)
 
 # Start with a dummy row to calculate the row height
-msa_files = MsaFiles([["", "", "None", "", ""]])
-window = MainWindow(msa_files)
+mergedMsa = MergedMsa()
+window = MainWindow(mergedMsa)
 window.show()
-# Remove the dummy row used to calculate table height
-# TODO: Don't do this if real data is passed in
-window.viewModel.removeFile(0)
 
 app.exec()

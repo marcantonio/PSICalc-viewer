@@ -7,19 +7,22 @@ from PySide6.QtGui import QFont
 
 
 class MsaTableView(QWidget):
-    def __init__(self, parent, viewModel):
+    def __init__(self, model, parent=None):
         super().__init__(parent)
-        self.viewModel = viewModel
+        self.model = model
+
+        # Insert and remove a dummy row to calculate table height
+        self.model.insertRow(0)
+        self.initUI()
+        self.model.removeRow(0)
 
         # Respond to the model
-        self.viewModel.rowsInserted.connect(self.rowsUpdated)
-        self.viewModel.rowsRemoved.connect(self.rowsUpdated)
-
-        self.initUI()
+        self.model.rowsInserted.connect(self.rowsUpdated)
+        self.model.rowsRemoved.connect(self.rowsUpdated)
 
     def initUI(self):
         self.table = QTableView()
-        self.table.setModel(self.viewModel)
+        self.table.setModel(self.model)
         self.table.setShowGrid(False)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
 
@@ -50,7 +53,7 @@ class MsaTableView(QWidget):
         self.table.setFixedHeight(self.table.verticalHeader().sectionSize(0) * 2 + self.table.horizontalHeader().height())
 
         # Add the remove buttons to each row
-        for row in range(self.viewModel.rowCount()):
+        for row in range(self.model.rowCount()):
             self.addRemoveButton(row)
 
         layout = QVBoxLayout()
@@ -67,9 +70,9 @@ class MsaTableView(QWidget):
         self.setLayout(layout)
 
         # Column sizes
-        self.table.setColumnWidth(0, self.table.fontMetrics().horizontalAdvance(self.viewModel._headers[0]) + 30)
+        self.table.setColumnWidth(0, self.table.fontMetrics().horizontalAdvance(self.model.headerData(0)) + 30)
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-        self.table.setColumnWidth(2, self.table.fontMetrics().horizontalAdvance(self.viewModel._headers[2]) + 50)
+        self.table.setColumnWidth(2, self.table.fontMetrics().horizontalAdvance(self.model.headerData(2)) + 50)
         self.table.setColumnWidth(3, self.table.fontMetrics().horizontalAdvance("Sequences: XXXXX") + 50)  # Some dummy text
         self.table.setColumnWidth(4, 26)  # Image is 16px plus padding
 
@@ -77,17 +80,17 @@ class MsaTableView(QWidget):
         button = QPushButton()
         button.setIcon(self.style().standardIcon(QStyle.SP_DialogCloseButton))
         button.setStyleSheet("border: none;")
-        button.clicked.connect(lambda _, row=row: self.viewModel.removeFile(row))
-        self.table.setIndexWidget(self.viewModel.index(row, 4), button)
+        button.clicked.connect(lambda _, row=row: self.model.removeFile(row))
+        self.table.setIndexWidget(self.model.index(row, 4), button)
 
     def addFiles(self):
         files = QFileDialog.getOpenFileNames()[0]
-        self.viewModel.addFiles(files)
+        self.model.addFiles(files)
 
     # Signaled changes from the model
     def rowsUpdated(self, parent, first, last):
         # Re-add all buttons so the new indices are correct
-        for i in range(self.viewModel.rowCount()):
+        for i in range(self.model.rowCount()):
             self.addRemoveButton(i)
 
 

@@ -5,9 +5,9 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSpinBox, QDoubleSpi
 class ClusteringParams(QWidget):
     runClicked = Signal(QObject)
 
-    def __init__(self, viewModel, parent=None):
+    def __init__(self, model, parent=None):
         super().__init__(parent)
-        self.viewModel = viewModel
+        self.model = model
 
         layout = QFormLayout(self)
 
@@ -22,7 +22,7 @@ class ClusteringParams(QWidget):
 
         # Durston column spinbox
         durstonColumnSpinBox = QSpinBox()
-        durstonColumnSpinBox.valueChanged.connect(self.viewModel.updateDurstonColumn)
+        durstonColumnSpinBox.valueChanged.connect(self.model.setDurstonColumn)
         durstonLayout.addWidget(durstonColumnSpinBox)
         durstonLayout.addStretch(3)
         layout.addRow(durstonLayout)
@@ -46,14 +46,14 @@ class ClusteringParams(QWidget):
         insertionSpinbox = QSpinBox()
         insertionSpinbox.setRange(0, 100)
         insertionSpinbox.setSuffix("%")
-        insertionSpinbox.valueChanged.connect(self.viewModel.updateInsertion)
+        insertionSpinbox.valueChanged.connect(self.model.setInsertion)
         insertionLayout.addWidget(insertionSpinbox)
         layout.addRow(QLabel("Non-insertion percentage:"), insertionLayout)
 
         # Spread spinbox
         spreadSpinbox = QSpinBox()
         spreadSpinbox.setRange(1, 99)
-        spreadSpinbox.valueChanged.connect(self.viewModel.updateSpread)
+        spreadSpinbox.valueChanged.connect(self.model.setSpread)
         layout.addRow(QLabel("Spread:"), spreadSpinbox)
 
         # Entropy cutoff spinbox
@@ -61,7 +61,7 @@ class ClusteringParams(QWidget):
         entropyCutoffSpinbox.setDecimals(2)
         entropyCutoffSpinbox.setRange(0.0, 0.25)
         entropyCutoffSpinbox.setSingleStep(0.01)
-        entropyCutoffSpinbox.valueChanged.connect(self.viewModel.updateEntropyCutoff)
+        entropyCutoffSpinbox.valueChanged.connect(self.model.setEntropyCutoff)
         layout.addRow(QLabel("Entropy cutoff:"), entropyCutoffSpinbox)
 
         # Run button
@@ -77,4 +77,4 @@ class ClusteringParams(QWidget):
 
     def onRowLabelingClicked(self, id, checked):
         if checked:
-            self.viewModel.updateRowLabelingMethod("durston" if id == 1 else "deweese")
+            self.model.setRowLabelingMethod("durston" if id == 1 else "deweese")
