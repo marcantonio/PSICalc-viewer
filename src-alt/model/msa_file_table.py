@@ -1,43 +1,58 @@
 from PySide6.QtCore import Qt, QAbstractTableModel, QModelIndex, Signal
 
+import psicalc as pc
+
 
 class MsaFileTable(QAbstractTableModel):
     error = Signal(str, str, str)
-    filesAdded = Signal(list, list)
-    fileRemoved = Signal(int)
 
-    def __init__(self):
+    def __init__(self, msa):
         super().__init__()
+        self.msa = msa
         self.headers = ["Label", "Filename", "Apply alignment?", "Details", ""]
-        self.files = []
+        self.fileData = []
 
     def rowCount(self, parent=QModelIndex()):
-        return len(self.files)
+        return len(self.fileData)
 
     def columnCount(self, parent=QModelIndex()):
         return len(self.headers)
 
     def data(self, index, role):
-        if not self.files:
+        if not self.fileData:
             return None
 
         if role == Qt.DisplayRole:
-            # Hide label for display if there's only 1 row
-            if index.column() == 0 and self.rowCount() == 1:
+            # Hide labels if there is only one row
+            if self.rowCount() == 1 and index.column() == 0:
                 return ""
-            return self.files[index.row()][index.column()]
+
+            # Build details column, omit label if one row
+            if index.column() == 3:
+                label = "" if self.rowCount() == 1 else self.fileData[index.row()][0]
+                return self.buildDetails(index.row(), label)
+
+            return self.fileData[index.row()][index.column()]
 
         if role == Qt.EditRole:
-            return self.files[index.row()][index.column()]
+            return self.fileData[index.row()][index.column()]
 
         return None
+
+    def buildDetails(self, row, label):
+        try:
+            (numColumns, numSequences, firstColumn, lastColumn) = self.msa.getDataFrameMetadata(row)
+            labelRange = label + str(firstColumn) + "..." + label + str(lastColumn)
+            return f"Columns: {numColumns}\nSequences: {numSequences}\nLabels: {labelRange}"
+        except Exception:
+            return "Error fetch details"
 
     def setData(self, index, value, role=Qt.EditRole):
         if role == Qt.EditRole:
             # Ensure label is valid before setting
             if index.column() == 0 and not self.isValidLabel(value, index.row()):
                 return False
-            self.files[index.row()][index.column()] = value
+            self.fileData[index.row()][index.column()] = value
             self.dataChanged.emit(index, index, [Qt.DisplayRole, Qt.EditRole])
             return True
         return False
@@ -60,13 +75,13 @@ class MsaFileTable(QAbstractTableModel):
     def insertRows(self, position, rows=1, parent=QModelIndex()):
         self.beginInsertRows(parent, position, position + rows - 1)
         for _ in range(rows):
-            self.files.insert(position, ["", "", "None", "", ""])
+            self.fileData.insert(position, ["", "", "None", "", ""])
         self.endInsertRows()
         return True
 
     def removeRow(self, row):
         self.beginRemoveRows(QModelIndex(), row, row)
-        self.files.pop(row)
+        self.fileData.pop(row)
         self.endRemoveRows()
 
     def getLabels(self, excludeRow=None):
@@ -95,8 +110,6 @@ class MsaFileTable(QAbstractTableModel):
         existingLabels = self.getLabels()
         existingFiles = self.getFiles()
 
-        newFiles = []
-        newLabels = []
         for file in files:
             # Just skip files that already exist
             if file not in existingFiles:
@@ -105,21 +118,33 @@ class MsaFileTable(QAbstractTableModel):
                 while label in existingLabels:
                     label = next(labelGen)
 
+                try:
+                    self.importFile(file, label)
+                except Exception as e:
+                    self.error.emit("Error", f"Failed to read file \"{file}\"", str(e))
+                    return
+
                 self.insertRows(self.rowCount(), 1)
                 row = self.rowCount() - 1
                 self.setData(self.index(row, 0), label, Qt.EditRole)
                 self.setData(self.index(row, 1), file, Qt.EditRole)
                 existingFiles.add(file)
                 existingLabels.add(label)
-                newFiles.append(file)
-                newLabels.append(label)
 
-        if newFiles:
-            self.filesAdded.emit(newFiles, newLabels)
+    def importFile(self, file, label):
+        try:
+            df = None
+            if str(file).endswith((".txt", ".fasta")):
+                df = pc.read_txt_file_format(file)
+            else:
+                df = pc.read_csv_file_format(file)
+            self.msa.addDataframe(label, df)
+        except Exception:
+            raise
 
     def removeFile(self, row):
         self.removeRow(row)
-        self.fileRemoved.emit(row)
+        self.msa.dropDataframe(row)
 
     # Generator to create labels A-Z, AA-ZZ, etc
     @staticmethod

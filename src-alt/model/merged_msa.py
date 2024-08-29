@@ -35,6 +35,10 @@ class MergedMsa(QObject):
         print(self.labels)
         print(len(self.dataframes))
 
+    def getDataFrameMetadata(self, idx):
+        return (len(self.dataframes[idx].columns), len(self.dataframes[idx].index),
+                self.dataframes[idx].columns[0], self.dataframes[idx].columns[-1])
+
     def setRowLabelingMethod(self, value):
         self.rowLabelingMethod = value
         print(f"Row labeling method updated to: {self.rowLabelingMethod}")
@@ -54,18 +58,3 @@ class MergedMsa(QObject):
     def setEntropyCutoff(self, value):
         self.entropyCutoff = value
         print(f"Entropy cutoff updated to: {self.entropyCutoff}")
-
-    def importFiles(self, files, labels):
-        if not files or not labels:
-            return
-
-        # Read all of the files and store in a list of dataframes
-        for label, file in zip(labels, files):
-            try:
-                if str(file).endswith((".txt", ".fasta")):
-                    df = pc.read_txt_file_format(file)
-                else:
-                    df = pc.read_csv_file_format(file)
-                self.addDataframe(label, df)
-            except Exception as e:
-                self.error.emit("Error", f"Failed to read file {file}", str(e))

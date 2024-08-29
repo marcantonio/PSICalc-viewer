@@ -26,10 +26,8 @@ class MainWindow(QMainWindow):
         # MSA files table
         msaGroupbox = QGroupBox("MSA files")
         msaLayout = QVBoxLayout(msaGroupbox)
-        msaTableModel = MsaFileTable()
+        msaTableModel = MsaFileTable(self.model)
         msaTableModel.error.connect(self.showError)
-        msaTableModel.filesAdded.connect(self.model.importFiles)
-        msaTableModel.fileRemoved.connect(self.model.dropDataframe)
         msaTable = MsaTableView(msaTableModel, self)
         msaLayout.addWidget(msaTable)
         vbox.addWidget(msaGroupbox)
