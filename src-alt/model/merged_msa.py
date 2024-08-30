@@ -5,6 +5,7 @@ import psicalc as pc
 
 class MergedMsa(QObject):
     error = Signal(str, str, str)
+    dataChanged = Signal()
 
     def __init__(self, data=[]):
         super().__init__()
@@ -19,8 +20,10 @@ class MergedMsa(QObject):
         self.labels = []
         # The raw dataframes as read from disk. Always use these when user settings change
         self.dataframes = []
+        # The dataframes after applying settings. Always use these for output
+        self.cooked_dataframes = []
         # The merged MSA
-        self.mergedData = None
+        self.mergedMsa = None
 
     def addDataframe(self, label, dataframe):
         dataframe = dataframe.replace({'[-#?.]': None}, regex=True)
@@ -28,6 +31,7 @@ class MergedMsa(QObject):
         self.dataframes.append(dataframe)
         print(self.labels)
         print(len(self.dataframes))
+        self.applyTransforms()
 
     def dropDataframe(self, idx):
         self.labels.pop(idx)
@@ -35,9 +39,10 @@ class MergedMsa(QObject):
         print(self.labels)
         print(len(self.dataframes))
 
-    def getDataFrameMetadata(self, idx):
-        return (len(self.dataframes[idx].columns), len(self.dataframes[idx].index),
-                self.dataframes[idx].columns[0], self.dataframes[idx].columns[-1])
+    # Returns dimensions and column names for existing dataframes
+    def getDataFramesMetadata(self, idx):
+        return (len(self.cooked_dataframes[idx].columns), len(self.cooked_dataframes[idx].index),
+                self.cooked_dataframes[idx].columns[0], self.cooked_dataframes[idx].columns[-1])
 
     def setRowLabelingMethod(self, value):
         self.rowLabelingMethod = value
@@ -50,6 +55,7 @@ class MergedMsa(QObject):
     def setInsertion(self, value):
         self.insertion = value
         print(f"Insertion: {self.insertion}")
+        self.applyTransforms()
 
     def setSpread(self, value):
         self.spread = value
@@ -58,3 +64,49 @@ class MergedMsa(QObject):
     def setEntropyCutoff(self, value):
         self.entropyCutoff = value
         print(f"Entropy cutoff updated to: {self.entropyCutoff}")
+
+    # Apply user settings to new data
+    def applyTransforms(self):
+        dataframes = self.dataframes.copy()
+        if not dataframes:
+            return
+
+        if self.rowLabelingMethod == "deweese":
+            dataframes = [pc.deweese_schema(df, "None") for df in dataframes]
+        else:
+            dataframes = [pc.durston_schema(df, self.durstonColumn) for df in dataframes]
+
+        if self.insertion > 0:
+            dataframes = self.remove_insertion_data(dataframes)
+
+        self.cooked_dataframes = dataframes
+
+        self.dataChanged.emit()
+
+        # Only use the labels if there's more than one
+        labels = self.labels if len(self.labels) > 1 else []
+
+        self.mergedMsa = pc.merge_sequences(self.cooked_dataframes, labels)
+        print(self.mergedMsa)
+
+    def remove_insertion_data(self, data):
+        for i in range(len(data)):
+            try:
+                index_len = len(data[i].index)
+                null_val = float(self.insertion) / 100
+                data[i] = data[i].replace({'[-#?.]': None}, regex=True)
+                labels_to_delete = []
+
+                def series_remove_insertions(x):
+                    non_nulls = x.count()
+                    info_amount = non_nulls / index_len
+                    if info_amount < null_val:
+                        labels_to_delete.append(x.name)
+                    return
+
+                data[i].apply(series_remove_insertions, axis=0)
+                data[i] = data[i].drop(labels_to_delete, axis=1)
+            except IndexError or KeyError:
+                self.error.emit("Error", "Not enough columns", None)
+
+        return data

@@ -9,6 +9,7 @@ class MsaFileTable(QAbstractTableModel):
     def __init__(self, msa):
         super().__init__()
         self.msa = msa
+        self.msa.dataChanged.connect(lambda: self.layoutChanged.emit())
         self.headers = ["Label", "Filename", "Apply alignment?", "Details", ""]
         self.fileData = []
 
@@ -39,13 +40,14 @@ class MsaFileTable(QAbstractTableModel):
 
         return None
 
+    # Build the details string for `row`
     def buildDetails(self, row, label):
         try:
-            (numColumns, numSequences, firstColumn, lastColumn) = self.msa.getDataFrameMetadata(row)
-            labelRange = label + str(firstColumn) + "..." + label + str(lastColumn)
+            (numColumns, numSequences, firstColumn, lastColumn) = self.msa.getDataFramesMetadata(row)
+            labelRange = str(firstColumn) + "..." + str(lastColumn)
             return f"Columns: {numColumns}\nSequences: {numSequences}\nLabels: {labelRange}"
         except Exception:
-            return "Error fetch details"
+            return "Error fetching details"
 
     def setData(self, index, value, role=Qt.EditRole):
         if role == Qt.EditRole:
