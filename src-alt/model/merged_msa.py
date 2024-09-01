@@ -29,15 +29,12 @@ class MergedMsa(QObject):
         dataframe = dataframe.replace({'[-#?.]': None}, regex=True)
         self.labels.append(label)
         self.dataframes.append(dataframe)
-        print(self.labels)
-        print(len(self.dataframes))
         self.applyTransforms()
 
     def dropDataframe(self, idx):
         self.labels.pop(idx)
         self.dataframes.pop(idx)
-        print(self.labels)
-        print(len(self.dataframes))
+        self.applyTransforms()
 
     # Returns dimensions and column names for existing dataframes
     def getDataFramesMetadata(self, idx):
@@ -46,26 +43,21 @@ class MergedMsa(QObject):
 
     def setRowLabelingMethod(self, value):
         self.rowLabelingMethod = value
-        print(f"Row labeling method updated to: {self.rowLabelingMethod}")
         self.applyTransforms()
 
     def setDurstonColumn(self, value):
         self.durstonColumn = value
-        print(f"Durston column set to: {self.durstonColumn}")
         self.applyTransforms()
 
     def setInsertion(self, value):
         self.insertion = value
-        print(f"Insertion: {self.insertion}")
         self.applyTransforms()
 
     def setSpread(self, value):
         self.spread = value
-        print(f"Spread: {self.spread}")
 
     def setEntropyCutoff(self, value):
         self.entropyCutoff = value
-        print(f"Entropy cutoff updated to: {self.entropyCutoff}")
 
     # Apply user settings to new data
     def applyTransforms(self):
@@ -89,7 +81,6 @@ class MergedMsa(QObject):
         labels = self.labels if len(self.labels) > 1 else []
 
         self.mergedMsa = pc.merge_sequences(self.cookedDataframes, labels)
-        print(self.mergedMsa)
 
     def removeInsertionData(self, data):
         for i in range(len(data)):

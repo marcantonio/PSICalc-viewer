@@ -1,5 +1,8 @@
+import sys
+
+from PySide6.QtCore import QThreadPool, QObject, Signal
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit, QGroupBox
-from PySide6.QtCore import QThreadPool
+from PySide6.QtGui import QTextCursor, QFont
 
 from ..error_dialog import ErrorDialog
 from model.msa_file_table import MsaFileTable
@@ -48,8 +51,16 @@ class MainWindow(QMainWindow):
         clusteringParamsGroupbox.setLayout(clusteringParamsLayout)
         hbox.addWidget(clusteringParamsGroupbox, 1)
 
-        textBox = QPlainTextEdit(self)
-        hbox.addWidget(textBox, 2)
+        # Text box
+        self.textBox = QPlainTextEdit(self)
+        hbox.addWidget(self.textBox, 2)
+        font = QFont("Menlo, Consolas, DejaVu Sans Mono")
+        font.setStyleHint(QFont.Monospace)
+        font.setFixedPitch(True)
+        font.setPointSize(12)
+        self.textBox.setFont(font)
+        sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
+        sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
 
         # Status Bar
         self.statusBar = StatusBar(self)
@@ -95,3 +106,17 @@ class MainWindow(QMainWindow):
         self.showError("Error", "Clustering failed", e)
         print("Error running psicalc: ")
         print(e)
+
+    def normalOutputWritten(self, text):
+        cursor = self.textBox.textCursor()
+        cursor.movePosition(QTextCursor.End)
+        cursor.insertText(text)
+        self.textBox.setTextCursor(cursor)
+        self.textBox.ensureCursorVisible()
+
+
+class EmittingStream(QObject):
+    textWritten = Signal(str)
+
+    def write(self, text):
+        self.textWritten.emit(str(text))
