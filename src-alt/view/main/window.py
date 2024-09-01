@@ -1,10 +1,12 @@
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit, QGroupBox
+from PySide6.QtCore import QThreadPool
 
-from .clustering_params import ClusteringParams
 from ..error_dialog import ErrorDialog
+from ..worker import Worker
+from model.msa_file_table import MsaFileTable
+from .clustering_params import ClusteringParams
 from .msa_table_view import MsaTableView
 from .status_bar import StatusBar
-from model.msa_file_table import MsaFileTable
 
 
 class MainWindow(QMainWindow):
@@ -37,10 +39,10 @@ class MainWindow(QMainWindow):
         vbox.addLayout(hbox, 1)
 
         # Clustering parameters
-        clusteringParams = ClusteringParams(self.model, self)
+        self.clusteringParams = ClusteringParams(self.model, self)
         clusteringParamsGroupbox = QGroupBox("Clustering parameters")
         clusteringParamsLayout = QVBoxLayout()
-        clusteringParamsLayout.addWidget(clusteringParams)
+        clusteringParamsLayout.addWidget(self.clusteringParams)
         clusteringParamsGroupbox.setLayout(clusteringParamsLayout)
         hbox.addWidget(clusteringParamsGroupbox, 1)
 
@@ -50,8 +52,38 @@ class MainWindow(QMainWindow):
         # Status Bar
         self.statusBar = StatusBar(self)
         self.setStatusBar(self.statusBar)
-        clusteringParams.runClicked.connect(self.statusBar.toggleSpinner)
+        self.statusBar.updateRunButton.connect(self.clusteringParams.updateRunButtonText)
+        self.clusteringParams.runClicked.connect(self.onRunClicked)
+
+        self.worker = None
+        self.clusteringRunning = False
 
     def showError(self, title, message, details):
         dialog = ErrorDialog(title, message, details, self)
         dialog.exec()
+
+    def onRunClicked(self, button):
+        if self.clusteringRunning:
+            self.clusteringRunning = False
+            self.statusBar.disableSpinner()
+            self.worker.cancel()
+        else:
+            self.clusteringRunning = True
+            self.statusBar.enableSpinner()
+            self.worker = Worker(self.model.runClustering)
+            self.worker.signals.result.connect(self.clusteringSuccess)
+            self.worker.signals.finished.connect(self.finished)
+            self.worker.signals.error.connect(self.clusteringError)
+            QThreadPool.globalInstance().start(self.worker)
+
+    def finished(self):
+        self.clusteringRunning = False
+        self.statusBar.disableSpinner()
+        print("Done")
+
+    def clusteringSuccess(self, result):
+        print("result: " + result)
+
+    def clusteringError(self, e):
+        print("Error running psicalc: ")
+        print(e)

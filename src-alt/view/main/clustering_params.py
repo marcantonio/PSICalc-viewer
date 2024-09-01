@@ -66,10 +66,10 @@ class ClusteringParams(QWidget):
 
         # Run button
         runButtonLayout = QHBoxLayout()
-        runButton = QPushButton("Run clustering")
+        self.runButton = QPushButton("Run clustering")
         runButtonLayout.setAlignment(Qt.AlignCenter)
-        runButtonLayout.addWidget(runButton)
-        runButton.clicked.connect(lambda: self.onRunButtonClicked(runButton))
+        runButtonLayout.addWidget(self.runButton)
+        self.runButton.clicked.connect(lambda: self.onRunButtonClicked(self.runButton))
         layout.addRow(runButtonLayout)
 
     def onRunButtonClicked(self, button):
@@ -78,3 +78,6 @@ class ClusteringParams(QWidget):
     def onRowLabelingClicked(self, id, checked):
         if checked:
             self.model.setRowLabelingMethod("durston" if id == 1 else "deweese")
+
+    def updateRunButtonText(self, text):
+        self.runButton.setText(text)

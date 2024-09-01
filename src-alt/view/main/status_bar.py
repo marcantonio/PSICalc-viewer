@@ -1,10 +1,11 @@
-from PySide6.QtWidgets import (
-    QLabel, QStatusBar, QHBoxLayout, QWidget
-)
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QLabel, QStatusBar, QHBoxLayout, QWidget
 from PySide6.QtGui import QMovie
 
 
 class StatusBar(QStatusBar):
+    updateRunButton = Signal(str)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.statusLabel = QLabel("Ready")
@@ -25,13 +26,13 @@ class StatusBar(QStatusBar):
         containerWidget.setLayout(self.statusLayout)
         self.addWidget(containerWidget)
 
-    def toggleSpinner(self, button):
-        if self.spinner.isVisible():
-            self.updateStatus(working=False)
-            button.setText("Run clustering")
-        else:
-            self.updateStatus("Clustering...", working=True)
-            button.setText("Stop clustering")
+    def enableSpinner(self):
+        self.updateStatus("Clustering...", working=True)
+        self.updateRunButton.emit("Stop clustering")
+
+    def disableSpinner(self):
+        self.updateStatus(working=False)
+        self.updateRunButton.emit("Run clustering")
 
     def updateStatus(self, message="Ready", working=True):
         self.statusLabel.setText(message)

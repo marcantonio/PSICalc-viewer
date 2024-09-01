@@ -21,7 +21,7 @@ class MergedMsa(QObject):
         # The raw dataframes as read from disk. Always use these when user settings change
         self.dataframes = []
         # The dataframes after applying settings. Always use these for output
-        self.cooked_dataframes = []
+        self.cookedDataframes = []
         # The merged MSA
         self.mergedMsa = None
 
@@ -41,16 +41,18 @@ class MergedMsa(QObject):
 
     # Returns dimensions and column names for existing dataframes
     def getDataFramesMetadata(self, idx):
-        return (len(self.cooked_dataframes[idx].columns), len(self.cooked_dataframes[idx].index),
-                self.cooked_dataframes[idx].columns[0], self.cooked_dataframes[idx].columns[-1])
+        return (len(self.cookedDataframes[idx].columns), len(self.cookedDataframes[idx].index),
+                self.cookedDataframes[idx].columns[0], self.cookedDataframes[idx].columns[-1])
 
     def setRowLabelingMethod(self, value):
         self.rowLabelingMethod = value
         print(f"Row labeling method updated to: {self.rowLabelingMethod}")
+        self.applyTransforms()
 
     def setDurstonColumn(self, value):
         self.durstonColumn = value
         print(f"Durston column set to: {self.durstonColumn}")
+        self.applyTransforms()
 
     def setInsertion(self, value):
         self.insertion = value
@@ -77,19 +79,19 @@ class MergedMsa(QObject):
             dataframes = [pc.durston_schema(df, self.durstonColumn) for df in dataframes]
 
         if self.insertion > 0:
-            dataframes = self.remove_insertion_data(dataframes)
+            dataframes = self.removeInsertionData(dataframes)
 
-        self.cooked_dataframes = dataframes
+        self.cookedDataframes = dataframes
 
         self.dataChanged.emit()
 
         # Only use the labels if there's more than one
         labels = self.labels if len(self.labels) > 1 else []
 
-        self.mergedMsa = pc.merge_sequences(self.cooked_dataframes, labels)
+        self.mergedMsa = pc.merge_sequences(self.cookedDataframes, labels)
         print(self.mergedMsa)
 
-    def remove_insertion_data(self, data):
+    def removeInsertionData(self, data):
         for i in range(len(data)):
             try:
                 index_len = len(data[i].index)
@@ -110,3 +112,8 @@ class MergedMsa(QObject):
                 self.error.emit("Error", "Not enough columns", None)
 
         return data
+
+    def runClustering(self):
+        print(f"running with {self.spread}, {self.entropyCutoff}")
+        results = pc.find_clusters(self.spread, self.mergedMsa, "pairwise", self.entropyCutoff)
+        return results
