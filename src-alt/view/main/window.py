@@ -9,6 +9,7 @@ from model.msa_file_table import MsaFileTable
 from .clustering_params import ClusteringParams
 from .msa_table_view import MsaTableView
 from .status_bar import StatusBar
+from ..tree_view import TreeView
 from worker import Worker
 
 
@@ -97,15 +98,13 @@ class MainWindow(QMainWindow):
         self.clusteringParams.enableControls()
         self.clusteringRunning = False
         self.statusBar.disableSpinner()
-        print("Done")
 
-    def clusteringSuccess(self, result):
-        print("result: " + result)
+    def clusteringSuccess(self, results):
+        self.tree_view = TreeView(results.clusterMap, results.mergedMsa, results.lowEntropySites, results.columnMap)
+        self.tree_view.show()
 
     def clusteringError(self, e):
         self.showError("Error", "Clustering failed", e)
-        print("Error running psicalc: ")
-        print(e)
 
     def normalOutputWritten(self, text):
         cursor = self.textBox.textCursor()

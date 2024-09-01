@@ -2,6 +2,8 @@ from PySide6.QtCore import QObject, Signal
 
 import psicalc as pc
 
+from .clustering_results import ClusteringResults
+
 
 class MergedMsa(QObject):
     error = Signal(str, str, str)
@@ -106,4 +108,5 @@ class MergedMsa(QObject):
 
     def runClustering(self):
         results = pc.find_clusters(self.spread, self.mergedMsa, "pairwise", self.entropyCutoff)
-        return results
+        results['merged_msa'] = self.mergedMsa
+        return ClusteringResults.fromDict(results)
