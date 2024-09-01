@@ -67,6 +67,7 @@ class ClusteringParams(QWidget):
         # Run button
         runButtonLayout = QHBoxLayout()
         self.runButton = QPushButton("Run clustering")
+        self.runButton.setObjectName("runButton")
         runButtonLayout.setAlignment(Qt.AlignCenter)
         runButtonLayout.addWidget(self.runButton)
         self.runButton.clicked.connect(lambda: self.onRunButtonClicked(self.runButton))
@@ -81,3 +82,15 @@ class ClusteringParams(QWidget):
 
     def updateRunButtonText(self, text):
         self.runButton.setText(text)
+
+    # Disable all child widgets except the run button. For some reason calling
+    # `self.setEnabled(False); runButton.setEnabled(True)` doesn't work
+    def disableControls(self):
+        for child in self.children():
+            if isinstance(child, QWidget):
+                child.setEnabled(child.objectName() == "runButton")
+
+    def enableControls(self):
+        for child in self.children():
+            if isinstance(child, QWidget):
+                child.setEnabled(True)

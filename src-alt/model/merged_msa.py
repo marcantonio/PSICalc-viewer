@@ -114,6 +114,5 @@ class MergedMsa(QObject):
         return data
 
     def runClustering(self):
-        print(f"running with {self.spread}, {self.entropyCutoff}")
         results = pc.find_clusters(self.spread, self.mergedMsa, "pairwise", self.entropyCutoff)
         return results

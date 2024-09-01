@@ -2,11 +2,11 @@ from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QP
 from PySide6.QtCore import QThreadPool
 
 from ..error_dialog import ErrorDialog
-from ..worker import Worker
 from model.msa_file_table import MsaFileTable
 from .clustering_params import ClusteringParams
 from .msa_table_view import MsaTableView
 from .status_bar import StatusBar
+from worker import Worker
 
 
 class MainWindow(QMainWindow):
@@ -15,6 +15,8 @@ class MainWindow(QMainWindow):
 
         self.model = model
         self.model.error.connect(self.showError)
+        self.worker = None
+        self.clusteringRunning = False
 
         self.setWindowTitle("PSICalc Viewer")
         self.resize(1000, 700)
@@ -28,9 +30,9 @@ class MainWindow(QMainWindow):
         # MSA files table
         msaGroupbox = QGroupBox("MSA files")
         msaLayout = QVBoxLayout(msaGroupbox)
-        msaTableModel = MsaFileTable(self.model)
-        msaTableModel.error.connect(self.showError)
-        msaTable = MsaTableView(msaTableModel, self)
+        self.msaTableModel = MsaFileTable(self.model)
+        self.msaTableModel.error.connect(self.showError)
+        msaTable = MsaTableView(self.msaTableModel, self)
         msaLayout.addWidget(msaTable)
         vbox.addWidget(msaGroupbox)
 
@@ -55,9 +57,6 @@ class MainWindow(QMainWindow):
         self.statusBar.updateRunButton.connect(self.clusteringParams.updateRunButtonText)
         self.clusteringParams.runClicked.connect(self.onRunClicked)
 
-        self.worker = None
-        self.clusteringRunning = False
-
     def showError(self, title, message, details):
         dialog = ErrorDialog(title, message, details, self)
         dialog.exec()
@@ -65,11 +64,18 @@ class MainWindow(QMainWindow):
     def onRunClicked(self, button):
         if self.clusteringRunning:
             self.clusteringRunning = False
+            self.clusteringParams.enableControls()
             self.statusBar.disableSpinner()
             self.worker.cancel()
         else:
+            if self.msaTableModel.rowCount() == 0:
+                self.showError("Error", "Please add some files", None)
+                return
+
             self.clusteringRunning = True
+            self.clusteringParams.disableControls()
             self.statusBar.enableSpinner()
+
             self.worker = Worker(self.model.runClustering)
             self.worker.signals.result.connect(self.clusteringSuccess)
             self.worker.signals.finished.connect(self.finished)
@@ -77,6 +83,7 @@ class MainWindow(QMainWindow):
             QThreadPool.globalInstance().start(self.worker)
 
     def finished(self):
+        self.clusteringParams.enableControls()
         self.clusteringRunning = False
         self.statusBar.disableSpinner()
         print("Done")
@@ -85,5 +92,6 @@ class MainWindow(QMainWindow):
         print("result: " + result)
 
     def clusteringError(self, e):
+        self.showError("Error", "Clustering failed", e)
         print("Error running psicalc: ")
         print(e)
