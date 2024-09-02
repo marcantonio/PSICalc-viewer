@@ -14,6 +14,5 @@ app.setWindowIcon(QIcon(":icons/icon.ico"))
 # Start with a dummy row to calculate the row height
 mergedMsa = MergedMsa()
 window = MainWindow(mergedMsa)
-window.show()
 
 app.exec()

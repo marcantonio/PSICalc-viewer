@@ -1,9 +1,12 @@
 import traceback
 
-from PySide6.QtCore import QRunnable, Signal, QObject
+from PySide6.QtCore import QThread, Signal, QObject
 
 
-class Worker(QRunnable):
+# This was a QRunnable and used with QThreadPool, but there's no way to forcable kill
+# it. When reimplementing stop functionality in psicalc, this can be changed back to a
+# QRunnable that checks for the cancel signal for cleaner shutdown
+class Worker(QThread):
     def __init__(self, fn, *args, **kwargs):
         super(Worker, self).__init__()
         self.fn = fn
@@ -11,6 +14,8 @@ class Worker(QRunnable):
         self.kwargs = kwargs
         self.signals = WorkerSignals()
         self.isCancelled = False
+        # Only required while this is a subclass of QThread
+        self.setTerminationEnabled()
 
     def run(self):
         try:
@@ -24,6 +29,7 @@ class Worker(QRunnable):
                 self.signals.finished.emit()
 
     def cancel(self):
+        self.terminate()
         self.isCancelled = True
 
 

@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QLabel, QStatusBar, QHBoxLayout, QWidget
-from PySide6.QtGui import QMovie, QIcon
+from PySide6.QtGui import QMovie
 
 
 class StatusBar(QStatusBar):

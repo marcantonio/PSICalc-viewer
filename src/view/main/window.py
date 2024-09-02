@@ -1,6 +1,6 @@
 import sys
 
-from PySide6.QtCore import QThreadPool, QObject, Signal
+from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPlainTextEdit, QGroupBox
 from PySide6.QtGui import QTextCursor, QFont
 
@@ -60,14 +60,27 @@ class MainWindow(QMainWindow):
         font.setFixedPitch(True)
         font.setPointSize(12)
         self.textBox.setFont(font)
-        sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
-        sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
 
-        # Status Bar
+        # Status bar
         self.statusBar = StatusBar(self)
         self.setStatusBar(self.statusBar)
         self.statusBar.updateRunButton.connect(self.clusteringParams.updateRunButtonText)
         self.clusteringParams.runClicked.connect(self.onRunClicked)
+
+        # Don't start redirecting output until the the box is drawn. Helps dev a bit
+        self.show()
+        QTimer.singleShot(0, self.onDisplay)
+
+    def onDisplay(self):
+        self.oldStdout = sys.stdout
+        self.oldStderr = sys.stdout
+        sys.stdout = EmittingStream(textWritten=self.normalOutputWritten)
+        sys.stderr = EmittingStream(textWritten=self.normalOutputWritten)
+
+    def closeEvent(self, event):
+        sys.stdout = self.oldStdout
+        sys.stderr = self.oldStderr
+        super().closeEvent(event)
 
     def showError(self, title, message, details):
         dialog = ErrorDialog(title, message, details, self)
@@ -92,7 +105,7 @@ class MainWindow(QMainWindow):
             self.worker.signals.result.connect(self.clusteringSuccess)
             self.worker.signals.finished.connect(self.finished)
             self.worker.signals.error.connect(self.clusteringError)
-            QThreadPool.globalInstance().start(self.worker)
+            self.worker.start()
 
     # Called when cluster worker finishes, regardless of success
     def finished(self):

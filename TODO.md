@@ -1,0 +1,6 @@
+- [ ] Status bar reflect file loading
+- [ ] .psicalc file type
+- [ ] Re-add load cluster data
+- [ ] Revert to QRunnable with a QThreadPool
+- [ ] Move export to menu
+- [ ] Reimplement old views
