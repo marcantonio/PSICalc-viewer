@@ -9,9 +9,9 @@ help:
     @just --list
 
 run_cmd := if os_family() == "unix" {
-    "PYTHONPATH=src:../psicalc-package/src python src/ps_app/main.py"
+    "PYTHONPATH=src:../psicalc-package/src python src/main.py"
 } else {
-    "$env:PYTHONPATH=\".\\src;..\\psicalc-package\\src\"; python.exe .\\src\\ps_app\\main.py"
+    "$env:PYTHONPATH=\".\\src;..\\psicalc-package\\src\"; python.exe .\\src\\main.py"
 }
 # Run locally (for development)
 run:
@@ -38,9 +38,9 @@ build: clean
     pyinstaller "packaging/psicalc-{{os()}}.spec"
 
 resource_cmd := if os_family() == "unix" {
-    "pyrcc5 resources/resources.qrc -o src/ps_app/resources.py"
+    "pyside6-rcc resources/resources.qrc -o src/resources.py"
 } else {
-    "pyrcc5 resources\\resources.qrc -o src\\ps_app\\resources.py"
+    "pyside6-rcc resources\\resources.qrc -o src\\resources.py"
 }
 # Build resource file and output to the src directory
 build-resources:

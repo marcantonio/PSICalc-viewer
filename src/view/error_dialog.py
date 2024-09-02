@@ -16,7 +16,7 @@ class ErrorDialog(QMessageBox):
             textEdit.setReadOnly(True)
             textEdit.setMinimumSize(400, 200)
 
-            font = QFont("Courier")
+            font = QFont("Menlo, Consolas, DejaVu Sans Mono")
             font.setStyleHint(QFont.Monospace)
             font.setFixedPitch(True)
             font.setWeight(QFont.Normal)
