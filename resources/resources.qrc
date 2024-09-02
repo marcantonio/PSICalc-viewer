@@ -3,5 +3,6 @@
     <qresource prefix="icons">
         <file alias="excel_logo.png">icons/excel_logo.png</file>
         <file alias="icon.ico">psicalc-viewer.ico</file>
+        <file alias="spinner.gif">icons/spinner.gif</file>
     </qresource>
 </RCC>

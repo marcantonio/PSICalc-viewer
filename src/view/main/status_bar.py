@@ -1,6 +1,6 @@
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QLabel, QStatusBar, QHBoxLayout, QWidget
-from PySide6.QtGui import QMovie
+from PySide6.QtGui import QMovie, QIcon
 
 
 class StatusBar(QStatusBar):
@@ -11,7 +11,7 @@ class StatusBar(QStatusBar):
         self.statusLabel = QLabel("Ready")
         self.spinner = QLabel(self)
 
-        self.animation = QMovie("spinner.gif")
+        self.animation = QMovie(":icons/spinner.gif")
         self.spinner.setFixedSize(16, 16)
         self.spinner.setMovie(self.animation)
         self.spinner.setVisible(False)
