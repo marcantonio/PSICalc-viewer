@@ -94,14 +94,15 @@ class MainWindow(QMainWindow):
             self.worker.signals.error.connect(self.clusteringError)
             QThreadPool.globalInstance().start(self.worker)
 
+    # Called when cluster worker finishes, regardless of success
     def finished(self):
         self.clusteringParams.enableControls()
         self.clusteringRunning = False
         self.statusBar.disableSpinner()
 
     def clusteringSuccess(self, results):
-        self.tree_view = TreeView(results.clusterMap, results.mergedMsa, results.lowEntropySites, results.columnMap)
-        self.tree_view.show()
+        self.treeView = TreeView(results.clusterMap, results.mergedMsa, results.lowEntropySites, results.columnMap)
+        self.treeView.show()
 
     def clusteringError(self, e):
         self.showError("Error", "Clustering failed", e)
